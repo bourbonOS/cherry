@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# THIS IS A SUBMODULE OF `cherry`, AND SHOULD NOT BE RUN DIRECTLY!!!
+
+# set variables
+FILENAME_TMP=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 35 ; echo '')
+
+# set help and status text
+status() {
+  cat <<EOF
+bourbonOS $(cat /etc/bourbonOS-version)
+pesticide: $(/usr/libexec/pesticide/status) $(/usr/libexec/pesticide/version)
+=======================
+host: $(hostname)
+kargs: $(cat /proc/cmdline)
+kernver: $(uname -r)
+=======================
+current container: $(cat /tmp/containername.$FILENAME_TMP)
+containers:
+$(distrobox-list | awk '{print $3}' | grep -v -e '^NAME$' -e '^cherry-cli$')
+=======================
+ostree status:
+$(bootc status)
+EOF
+}
+
+help() {
+  cat <<EOF
+Usage: cherry stem [option]
+
+Options:
+  root                        run a command on the host system
+  grow                        upgrade the host system and related utils
+  status                      show the status of the host system
+  help                        show this dialogue
+EOF
+}
+
+# main function
+case "$1" in
+    root)
+        shift
+        distrobox-host-exec "$@"
+        ;;
+    grow)
+        clear
+        echo "OS Upgrade Starting..."
+        echo "Upgrade logs also accessible at /tmp/topgrade.log-$FILENAME_TMP"
+        topgrade | tee /tmp/topgrade.log-$FILENAME_TMP
+        if [[ $? -eq 0 ]]; then
+            echo "OS Upgrade Complete!"
+        else
+            echo "OS Upgrade Failed! Check the logs at /tmp/topgrade.log-$FILENAME_TMP for full detail."
+        fi
+        ;;
+    status)
+        status
+        ;;
+    help)
+        help
+        ;;
+    *)
+        help
+        exit 1
+        ;;
+esac
