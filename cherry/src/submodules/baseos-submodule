@@ -15,12 +15,12 @@ host: $(hostname)
 kargs: $(cat /proc/cmdline)
 kernver: $(uname -r)
 =======================
-current container: $(cat /tmp/containername.$FILENAME_TMP)
+current container: $CONTAINER_ID
 containers:
 $(distrobox-list | awk '{print $3}' | grep -v -e '^NAME$' -e '^cherry-cli$')
 =======================
 ostree status:
-$(bootc status)
+$(pkexec bootc status)
 EOF
 }
 
