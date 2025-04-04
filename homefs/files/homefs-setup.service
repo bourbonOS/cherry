@@ -1,0 +1,12 @@
+[Unit]
+Description=Setup homefs
+After=var.mount
+Requires=var.mount
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/ostools/homefs-init
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

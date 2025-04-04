@@ -1,0 +1,17 @@
+[Unit]
+Description=Finish homefs setup
+DefaultDependencies=no
+Before=umount.target
+Before=shutdown.target
+Before=reboot.target
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/rm -rf /var/home/*
+ExecStartPost=/usr/bin/systemctl disable homefs-post-setup.service
+
+[Install]
+WantedBy=shutdown.target
+WantedBy=reboot.target

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+if [[ "$EUID" -ne 0 ]]; then
+    echo "error: this must be run as root!!"
+    exit 1
+elif [[ -f /etc/homefs/setup.lock ]]; then
+    echo "homefs is already setup!! exiting!!"
+    exit 1
+fi
+
+IMAGE_PATH="/tmp/homefs.img"
+MOUNT_POINT="/tmp/homefs-init"
+MAX_SIZE=100
+BLOCK_SIZE="1M"
+MAX_SIZE_MB=$((MAX_SIZE * 1024))
+MAX_SIZE_BYTES=$((MAX_SIZE_MB * 1024 * 1024))
+
+if [ ! -d "$MOUNT_POINT" ]; then
+    mkdir -p "$MOUNT_POINT"
+fi
+
+if [ ! -f "$IMAGE_PATH" ]; then
+    echo "creating sparse image file: $IMAGE_PATH (max size: ${MAX_SIZE_GB}GB)"
+    truncate -s "$MAX_SIZE_BYTES" "$IMAGE_PATH"
+else
+    echo "image file already exists: $IMAGE_PATH"
+fi
+
+LOOP_DEVICE=$(losetup -f)
+if [ -z "$LOOP_DEVICE" ]; then
+    echo "error: Could not find an unused loop device."
+    exit 1
+fi
+echo "Using loop device: $LOOP_DEVICE"
+
+losetup "$LOOP_DEVICE" "$IMAGE_PATH"
+if [ $? -ne 0 ]; then
+    echo "error: Failed to associate loop device with image file."
+    exit 1
+fi
+
+echo "formatting the loop device ($LOOP_DEVICE) with ext4..."
+mkfs.ext4 -F "$LOOP_DEVICE"
+if [ $? -ne 0 ]; then
+    echo "error: Failed to format the loop device."
+    losetup -d "$LOOP_DEVICE"
+    exit 1
+fi
+
+echo "mounting the loop device ($LOOP_DEVICE) to $MOUNT_POINT..."
+mount "$LOOP_DEVICE" "$MOUNT_POINT"
+if [ $? -ne 0 ]; then
+    echo "error: Failed to mount the loop device."
+    losetup -d "$LOOP_DEVICE"
+    exit 1
+fi
+
+echo "copying contents of /var/home to $MOUNT_POINT..."
+rsync -avx "/var/home/" "$MOUNT_POINT/"
+if [ $? -ne 0 ]; then
+    echo "warning: There were errors during the copy process."
+fi
+
+echo "unmounting $MOUNT_POINT..."
+umount "$MOUNT_POINT"
+if [ $? -ne 0 ]; then
+    echo "error: failed to unmount $MOUNT_POINT."
+    losetup -d "$LOOP_DEVICE"
+    exit 1
+fi
+
+echo "detaching loop device $LOOP_DEVICE..."
+losetup -d "$LOOP_DEVICE"
+if [ $? -ne 0 ]; then
+    echo "error: failed to detach loop device $LOOP_DEVICE."
+    exit 1
+fi
+
+echo "moving homefs image to /var/usrlocal/homefs..."
+mv /tmp/homefs.img /var/usrlocal/homefs
+systemctl enable homefs-post-setup.service
