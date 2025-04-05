@@ -25,6 +25,7 @@ case $1 in
         fi
         echo "installing $2..."
         run0 nix-env -iA unstable."$2"
+	echo "Installed $2!"
         ;;
     remove)
         if [ -z "$2" ]; then
@@ -34,6 +35,7 @@ case $1 in
         fi
         echo "removing $2..."
         run0 nix-env -e "$2"
+	echo "removed $2!"
         ;;
     list)
         echo "packages:"
