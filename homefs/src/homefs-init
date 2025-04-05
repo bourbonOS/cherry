@@ -20,7 +20,7 @@ if [ ! -d "$MOUNT_POINT" ]; then
 fi
 
 if [ ! -f "$IMAGE_PATH" ]; then
-    echo "creating sparse image file: $IMAGE_PATH (max size: ${MAX_SIZE_GB}GB)"
+    echo "creating image file: $IMAGE_PATH"
     truncate -s "$MAX_SIZE_BYTES" "$IMAGE_PATH"
 else
     echo "image file already exists: $IMAGE_PATH"
@@ -28,21 +28,21 @@ fi
 
 LOOP_DEVICE=$(losetup -f)
 if [ -z "$LOOP_DEVICE" ]; then
-    echo "error: Could not find an unused loop device."
+    echo "error: could not find an unused loop device."
     exit 1
 fi
 echo "Using loop device: $LOOP_DEVICE"
 
 losetup "$LOOP_DEVICE" "$IMAGE_PATH"
 if [ $? -ne 0 ]; then
-    echo "error: Failed to associate loop device with image file."
+    echo "error: failed to associate loop device with image file."
     exit 1
 fi
 
 echo "formatting the loop device ($LOOP_DEVICE) with ext4..."
 mkfs.ext4 -F "$LOOP_DEVICE"
 if [ $? -ne 0 ]; then
-    echo "error: Failed to format the loop device."
+    echo "error: failed to format the loop device."
     losetup -d "$LOOP_DEVICE"
     exit 1
 fi
@@ -50,7 +50,7 @@ fi
 echo "mounting the loop device ($LOOP_DEVICE) to $MOUNT_POINT..."
 mount "$LOOP_DEVICE" "$MOUNT_POINT"
 if [ $? -ne 0 ]; then
-    echo "error: Failed to mount the loop device."
+    echo "error: failed to mount the loop device."
     losetup -d "$LOOP_DEVICE"
     exit 1
 fi
@@ -79,3 +79,4 @@ fi
 echo "moving homefs image to /var/usrlocal/homefs..."
 mv /tmp/homefs.img /var/usrlocal/homefs
 systemctl enable homefs-post-setup.service
+echo "finished."
