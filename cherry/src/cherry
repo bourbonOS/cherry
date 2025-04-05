@@ -129,7 +129,7 @@ case "$1" in
                               if [[ -n $image ]]; then
                                   distrobox-assemble create --file "/etc/containerconf/$image.ini"
                                   echo "Done! You can switch to the container using 'cherry branch jump'."
-                                  break
+                                  exit 0
                               else
                                   echo "Invalid selection."
                                   exit 1
@@ -177,7 +177,8 @@ case "$1" in
               select container in $(distrobox-list | awk '{print $3}' | grep -v -e '^NAME$' -e '^cherry-cli$'); do
                   if [[ -n $container ]]; then
                       distrobox-rm "$container"
-                      break
+                      echo "Removed $container."
+                      exit 0
                   else
                       echo "Invalid selection."
                       exit 1
@@ -195,7 +196,7 @@ case "$1" in
                   if [[ -n $container ]]; then
                       podman save "$container" "$HOME/$container.tar"
                       echo "Container image saved at $HOME/$container.tar"
-                      break
+                      exit 0
                   else
                       echo "Invalid selection."
                       exit 1
@@ -220,7 +221,7 @@ case "$1" in
               echo "Select a container by its number to switch to it."
               select container in $(distrobox-list | awk '{print $3}' | grep -v '^NAME$' | sed 's/^cherry-cli$/default container/'); do
                   if [[ -n $container ]]; then
-                      exec distrobox-enter "$container" -- bash
+                      exec distrobox-enter "$container"
                   else
                       echo "Invalid selection."
                       exit 1
